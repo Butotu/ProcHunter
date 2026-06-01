@@ -1,13 +1,20 @@
 #include <cctype>
+#include <chrono>
+#include <cmath>
 #include <cstddef>
 #include <cstdlib>
+#include <iomanip>
+#include <ios>
 #include <iostream>
 #include <fstream>
 #include <iterator>
+#include <numeric>
 #include <ostream>
+#include <set>
 #include <string>
 #include <filesystem>
 #include <regex>
+#include <thread>
 #include <vector>
 #include <algorithm>
 
@@ -15,7 +22,7 @@ namespace fs = std::filesystem;
 
 struct Valores {
     std::string nome;
-    int ram;
+    double ram;
 };
 
 bool comparar_ram(const Valores &v1, const Valores &v2) {
@@ -23,9 +30,12 @@ bool comparar_ram(const Valores &v1, const Valores &v2) {
 }
 
 int main() {
+    while(true){
+    
     std::string path = "/proc";
     std::vector<Valores> valores;
     std::string pathMemo = "/proc/meminfo";
+    
     int ramTotal;
     int ramFree;
 
@@ -37,7 +47,6 @@ if(arquivoRam.is_open()){
         size_t inicio = std::string::npos;
         size_t fim = std::string::npos;
         total = linha.substr(9);
-        std::cout << total << std::endl;
 
         for (size_t i = 0; i < total.length(); i++) {
         if(std::isdigit(total[i])){
@@ -53,23 +62,44 @@ if(arquivoRam.is_open()){
         }
         std::string valor = (total.substr(inicio, fim - inicio));
         int valorRam = std::atoi(total.c_str());
-        std::cout <<"total!:" << valor << std::endl;
-        std::cout << "VALOR RAM:" << valorRam << std::endl;
+        // std::cout <<"total!:" << valor << std::endl;
+        // std::cout << "VALOR RAM:" << valorRam << std::endl;
         ramTotal = valorRam;
     }
-    std::string total2;
-
-    if(linha.find("MemFree:")){
-        total2 = linha.substr(9);
-        // std::cout << total2 << std::endl;
-        size_t primerioEspaco = total2.find_first_not_of(' ');
-        size_t UltimoEspaco = total2.find_last_not_of(' ');
-        total2.erase(0, primerioEspaco);
-        std::cout << "--------"<< total2 << std::endl;
-    }  
 }
+    std::ifstream arquivoRam2("/proc/meminfo");
+    if(arquivoRam2.is_open()){
+        
+    std::string alvo = "MemFree:";
+    std::string linha2;
 
+    while (std::getline(arquivoRam, linha2)) {
+    if(linha2.find(alvo) != std::string::npos){
+        std::string total = linha2;
+        std::cout << "VALOR 2" << total << std::endl;
+        size_t inicio = std::string::npos;
+        size_t fim = std::string::npos;
 
+        total = linha2.substr(9);
+
+        for(size_t i = 0; i < total.length(); i++){
+            if(std::isdigit(total[i])){
+                inicio = i;
+                break;
+            }
+            }
+            for(size_t y = 0; y<total.length(); y++){
+                if(!std::isdigit(total[y])){
+                    fim = y;
+                 break;
+                }
+            }
+                std::string valor2 = (total.substr(inicio, fim - inicio));
+                std::cout << "---------" << valor2 << std::endl;
+                ramFree = std::atoi(valor2.c_str());
+                }
+    }
+}
     for (const auto &entry: fs::directory_iterator(path)) {
         if (!entry.is_directory()) continue;
 
@@ -120,7 +150,7 @@ if(arquivoRam.is_open()){
             }
 
             if (achouVmRSS) {
-                valores.push_back({nomeProcesso, ramValor});
+                valores.push_back({nomeProcesso, (ramValor / 1024.0)});
             }
         }
     }
@@ -129,8 +159,18 @@ if(arquivoRam.is_open()){
 
     std::cout << "\n=== RANKING DE USO DE RAM ===\n";
     for (const auto &v: valores) {
-        std::cout << "Processo: " << v.nome << " | RAM: " << (v.ram / 1024.0) << " MB" << std::endl;
+        std::cout << "               " << std::endl;
+        std::cout << "Processo: " << v.nome  << std::endl;
+        std::cout << "Ram: " << std::fixed << std::setprecision(2) << v.ram << std::endl;
+        std::cout << "               " << std::endl;
     }
-    std::cout << "RamTotal:" << ramTotal << std::endl;
-    return 0;
+
+    int usado = ramTotal - ramFree;
+    std::cout << "USADO :"<<std::fixed << std::setprecision(2) << usado << ((double)usado / ramTotal) * 100 << "%" << std::endl;
+    std::cout << "RAM LIVRE: " << ramFree << std::endl;
+    std::cout << "TOTAL DE RAM: " << ramTotal << std::endl;
+     std::this_thread::sleep_for(std::chrono::seconds(5));
+    std::system("clear");
+    // clearTerminal();
+    }
 }
